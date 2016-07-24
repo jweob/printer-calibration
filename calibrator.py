@@ -24,7 +24,7 @@ def main():
     # The filename in the variable below should contain the gcode for the test piece to be repeated in the array
     # with the start and end gcode removed and the variables to be altered in each piece replaced with a number in the
     # format <#>
-    piece_gcode_filename = "test-piece.gcode"
+    piece_gcode_filename = "example-test-piece.gcode"
 
     # Start and end gcode
     start_gcode = "M190 S70.000000\n" \
@@ -119,7 +119,14 @@ def main():
     output_data += end_gcode
 
     # Write to output file
-    with open(piece_gcode_filename + "_output", "w") as text_file:
+    if(piece_gcode_filename.index(".")>-1):
+        fn_start = piece_gcode_filename[0:piece_gcode_filename.index(".")]
+        fn_ending = piece_gcode_filename[piece_gcode_filename.index("."):]
+    else:
+        fn_start = piece_gcode_filename
+        fn_ending = ".gcode"
+
+    with open(fn_start + "_output" + fn_ending, "w") as text_file:
         text_file.write(output_data)
 
 
