@@ -14,7 +14,7 @@ If not, see http://www.gnu.org/licenses/
 
 
 Takes a sliced test piece and replicates it in an array with some variables altered. Designed to dial in
-parameters.
+parameters. More information here: http://jweoblog.com/?p=908#more-908
 
 """
 
