@@ -24,7 +24,7 @@ def main():
     # The filename in the variable below should contain the gcode for the test piece to be repeated in the array
     # with the start and end gcode removed and the variables to be altered in each piece replaced with a number in the
     # format <#>
-    piece_gcode_filename = "example-test-piece.gcode"
+    piece_gcode_filename = "10mm cube.gcode"
 
     # Start and end gcode
     start_gcode = "M190 S70.000000\n" \
@@ -38,17 +38,17 @@ def main():
 
     end_gcode = "\nM104 S0\n" \
                 "M140 S0\n" \
-                "G1 X0 Y130 F9000\n"
+                "G1 X60 Y130 F9000\n"
 
     # The following code will be inserted between each test piece (e.g. to zero the extruder positon)
     inbetween_gcode ="G92 E0\n"
 
 
-    x_zero_adjust = 20  # Use to adjust the starting position of the original
-    y_zero_adjust = -40  # Use to adjust the starting position of the original
-    x_offset = 20  # How much to adjust the x position for each instance
-    y_offset = 20  # How much to adjust the y position for each instance
-    x_columns_max = 5  # Number of columns before it moves up a row
+    x_zero_adjust = 0  # Use to adjust the starting position of the original
+    y_zero_adjust = 0  # Use to adjust the starting position of the original
+    x_offset = 30  # How much to adjust the x position for each instance
+    y_offset = 30  # How much to adjust the y position for each instance
+    x_columns_max = 4  # Number of columns before it moves up a row
     precision = 3  # Number of digits to round X and Y instructions to
 
     # gcode_vars is the list of values that will replace variables in the piece gcode
@@ -138,6 +138,11 @@ def my_range(start, increment, iterations):
     for i in range(0, iterations):
         output.append(start + increment * i)
     return output
+
+
+class Gcode:
+    def __init__(self, gcode):
+        self.gcode = gcode
 
 if __name__ == '__main__':
     main()

@@ -1,78 +1,8 @@
-"""
-Multi Setting Calibration Prints
-Copyright John O'Brien 2016 jweob@cantab.net 2016-07-24
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
-version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program.
-If not, see http://www.gnu.org/licenses/
-
-
-Takes a sliced test piece and replicates it in an array with some variables altered. Designed to dial in
-parameters. More information here: http://jweoblog.com/?p=908#more-908
-
-"""
-
-import math
 
 precision = 3  # Number of digits to round X and Y instructions to
 
-def main():
-    # The filename in the variable below should contain the gcode for the test piece to be repeated in the array
-    # with the start and end gcode removed and the variables to be altered in each piece replaced with a number in the
-    # format <#>
-    piece_gcode_filename = "10x10x1-2.gcode"
-
-    # Read the piece gcode
-    with open(piece_gcode_filename, "r") as input_file:
-        raw_data = input_file.readlines()
-
-    template = Gcode(raw_data, "10mm x 10mm x 1.2mm cube")
-    template.translate_xy_to_point([0,0])
-    template.set_layerwise_extrusion()
-    template.strip_comments()
-
-    m92_values = float_range(920, 10, 25)
-    iteration_list = [(x, y) for x in range(5) for y in range(5)]
-
-    gcodes = []
-
-    for index, coords in enumerate(iteration_list):
-        print(coords)
-        this_gcode = Gcode(template.raw, name="M92 E" + str(m92_values[index]))
-        this_gcode.prepend_all_layers("M92 E" + str(m92_values[index]))
-        this_gcode.translate_xy_to_point([coords[0] * 20, coords[1] * 20])
-        gcodes.append(this_gcode)
-
-    output_gcode = combine_list_layerwise(gcodes)
-    output_gcode.translate_xy_to_point([10, 10])
-    output_gcode.append_layer("G1 X5 Y5 Z10\nM25\nG1 X5 Y5 Z10\n", 4)
-
-    print(output_gcode.bound_box)
-    for layer in output_gcode.layers:
-        print(layer)
-
-    output_data = "".join(output_gcode.raw)
-
-    # Write to output file
-    if (piece_gcode_filename.index(".") > -1):
-        fn_start = piece_gcode_filename[0:piece_gcode_filename.index(".")]
-        fn_ending = piece_gcode_filename[piece_gcode_filename.index("."):]
-    else:
-        fn_start = piece_gcode_filename
-        fn_ending = ".gcode"
-
-    with open(fn_start + "_output" + fn_ending, "w") as text_file:
-        text_file.write(output_data)
-
-
 def combine_list_layerwise(gcode_list):
-
     raw_output = []
     layers = []
     gcode_count = len(gcode_list)
@@ -82,6 +12,8 @@ def combine_list_layerwise(gcode_list):
 
     ref_layers = gcode_list[layers.index(max(layers))].layers
 
+    raw_output.append(gcode_list[0].start_gcode)
+
     for layer_num, layer in enumerate(ref_layers):
         for gcode_index, gcode in enumerate(gcode_list):
             for line_index, line_num in enumerate(range(gcode.layers[layer_num]["start_line_num"], gcode.layers[layer_num]["end_line_num"] + 1)):
@@ -90,11 +22,30 @@ def combine_list_layerwise(gcode_list):
                                   + " OBJECT " + str(gcode_index + 1) + "/" + str(gcode_count))
                 raw_output.append(gcode.raw[line_num])
 
+    raw_output.append(gcode_list[-1].end_gcode)
+
     return Gcode(raw_output)
 
+def combine_list_vertically(gcode_list):
+    raw_output = []
+    current_z = 0
+
+    for gcode in gcode_list:
+        gcode.translate([0,0,current_z])
+        current_z = gcode.bound_box["Z"][1]
+        raw_output.append(gcode.raw)
+
+    return Gcode(raw_output)
+
+
 class Gcode:
-    def __init__(self, gcode, name="Some Gcode"):
-        self.raw = gcode
+    def __init__(self, gcode="", file="", name="Some Gcode"):
+        if gcode != "":
+            self.raw = gcode
+        else:
+            with open(file, "r") as input_file:
+                self.raw = input_file.readlines()
+
         self.name = name
         self.words = []
         self.bound_box = {}
@@ -175,6 +126,16 @@ class Gcode:
                 new_raw.append(line)
         self.raw = new_raw
         self.__parse_raw()
+
+    def write_to_file(self, filename):
+        try:
+            fn_start = filename[0:filename.index(".")]
+            fn_ending = filename[filename.index("."):]
+        except:
+            fn_start = filename
+            fn_ending = ".gcode"
+        with open(fn_start + fn_ending, "w") as text_file:
+            text_file.write("".join(self.raw))
 
     def __translate_words(self, x_y_z_e, words, min_xyz=[0,0,0,-9999]):
         translations = {"X": x_y_z_e[0],
@@ -331,14 +292,4 @@ def is_number(s):
     except ValueError:
         return False
 
-def float_range(start, increment, iterations):
-    """
-    Range function for floats
-    """
-    output = []
-    for i in range(0, iterations):
-        output.append(start + increment * i)
-    return output
 
-if __name__ == '__main__':
-    main()
